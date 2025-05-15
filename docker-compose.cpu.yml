@@ -1,11 +1,3 @@
-# This file is a symlink managed by start-ollama.sh
-# It will be linked to one of:
-# - docker-compose.igpu.yml (Intel GPU)
-# - docker-compose.nvidia.yml (NVIDIA GPU)
-# - docker-compose.cpu.yml (CPU only)
-# 
-# Run ./start-ollama.sh to automatically detect and select the appropriate configuration
-
 services:
   ollama:
     image: ollama/ollama:latest

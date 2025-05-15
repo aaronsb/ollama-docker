@@ -1,21 +1,27 @@
-# Ollama Docker Setup with Intel iGPU Support
+# Ollama Docker Setup with GPU Support
 
-This repository contains a Docker Compose configuration for running Ollama with Intel iGPU acceleration.
+This repository contains a Docker Compose configuration for running Ollama with automatic GPU detection and acceleration. It supports:
+
+- NVIDIA GPUs (via NVIDIA Container Runtime)
+- Intel iGPUs (via OpenVINO)
+- CPU-only fallback mode
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
 - Docker Engine
-- Docker Compose
+- Docker Compose (V2 recommended)
+
+### For NVIDIA GPU Support
+
+- NVIDIA GPU with appropriate drivers
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+### For Intel iGPU Support
+
 - Intel GPU drivers (i915)
 - Intel Compute Runtime for OpenCL
-
-### Setting Up Intel iGPU for Docker
-
-To ensure your Intel iGPU is properly configured for Docker:
-
-1. Make sure you have the latest Intel drivers installed:
 
 ```bash
 # For Ubuntu/Debian
@@ -23,37 +29,32 @@ sudo apt-get update
 sudo apt-get install -y intel-opencl-icd intel-level-zero-gpu level-zero \
   intel-media-va-driver-non-free libmfx1 libmfxgen1 libvpl2 \
   intel-gpu-tools
-```
-
-2. Add your user to the 'video' group to access GPU devices:
-
-```bash
+  
+# Add your user to the 'video' group
 sudo usermod -a -G video $USER
 # Log out and log back in for changes to take effect
-```
-
-3. Verify your Intel GPU is detected:
-
-```bash
-ls -la /dev/dri/
-# You should see devices like card1, card2, renderD128, renderD129
 ```
 
 ## Getting Started
 
 ### Starting Ollama
 
-To start the Ollama container:
+The `start-ollama.sh` script automatically detects your available GPU hardware and configures the appropriate Docker Compose setup.
 
 ```bash
-docker compose up -d
+# Make the script executable if needed
+chmod +x start-ollama.sh
+
+# Run the setup script
+./start-ollama.sh
 ```
 
-This will:
-- Pull the latest Ollama image if not already present
-- Create a Docker volume for persistent storage
-- Start the container in detached mode
-- Configure GPU access
+This script will:
+1. Detect available GPU hardware (NVIDIA, Intel iGPU, or fallback to CPU)
+2. Create a symlink to the appropriate Docker Compose configuration
+3. Start the Ollama container with the correct GPU access
+4. Verify the Ollama API is responsive
+5. Offer to pull and run an initial model
 
 ### Stopping Ollama
 
@@ -118,7 +119,16 @@ docker exec -it ollama ollama rm llama3
 
 ### Checking GPU Access
 
-To verify that Ollama can access the Intel GPU:
+To verify that Ollama can access the GPU:
+
+#### For NVIDIA GPUs:
+
+```bash
+# Check if NVIDIA GPU is visible to the container
+docker exec -it ollama nvidia-smi
+```
+
+#### For Intel GPUs:
 
 ```bash
 # Check if Intel GPU devices are properly mounted
@@ -144,19 +154,21 @@ docker logs -f ollama
 
 ### Common Issues
 
-1. **GPU not detected**: Ensure Intel GPU drivers are properly installed and the /dev/dri devices are available.
+1. **NVIDIA GPU not detected**: Ensure NVIDIA Container Toolkit is properly installed and configured.
 
-2. **Permission issues**: Make sure your user is in the 'video' group and the container has the proper device mappings.
+2. **Intel GPU not detected**: Ensure Intel GPU drivers are properly installed and the /dev/dri devices are available.
 
-3. **OpenVINO errors**: If you see errors related to OpenVINO, ensure the Intel Compute Runtime is properly installed.
+3. **Permission issues**: Make sure your user is in the 'video' group and the container has the proper device mappings.
 
-4. **Network connectivity**: The container is configured to use the host network for optimal performance.
+4. **OpenVINO errors**: If you see errors related to OpenVINO, ensure the Intel Compute Runtime is properly installed.
+
+5. **Network connectivity**: The container is configured to use host networking for optimal performance.
 
 ## Advanced Configuration
 
 ### Environment Variables
 
-You can add environment variables to the Docker Compose file to customize Ollama:
+You can customize Ollama operation by editing the appropriate Docker Compose file and modifying the environment variables:
 
 ```yaml
 services:
@@ -194,6 +206,21 @@ To use custom models, you can either:
 
 1. Pull them using the Ollama CLI
 2. Import them using the Ollama API
+3. Create a custom model with a modelfile:
+
+```bash
+# Create a custom model with specific parameters
+docker exec -it ollama ollama create mymodel -f /path/to/modelfile
+```
+
+Example modelfile (see the included sample):
+```
+FROM qwen3:8b
+PARAMETER num_gpu 1
+PARAMETER num_thread 16
+PARAMETER num_ctx 131072  
+PARAMETER num_batch 1024
+```
 
 ## License
 

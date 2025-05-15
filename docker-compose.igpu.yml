@@ -1,0 +1,37 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_ORIGINS=chrome-extension://*
+      # Intel iGPU optimization settings
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=1h
+      # Use OpenVINO for Intel GPU acceleration
+      - OLLAMA_USE_OPENVINO=1
+      # Set CPU threads for hybrid processing
+      - OLLAMA_CPU_THREADS=16 # Adjust based on your CPU cores
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+      # Add shared memory volume for better performance
+      - /dev/shm:/dev/shm
+      # Mount Intel GPU devices
+      - /dev/dri:/dev/dri
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    devices:
+      # Expose Intel GPU devices to the container
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/renderD129:/dev/dri/renderD129
+      - /dev/dri/card1:/dev/dri/card1
+      - /dev/dri/card2:/dev/dri/card2
+    group_add:
+      # Add the container to the video group for GPU access
+      - video
+    deploy:
+      resources:
+        limits:
+          memory: 100G  # Allocate most of your RAM

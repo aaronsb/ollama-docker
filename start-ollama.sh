@@ -52,32 +52,71 @@ else
     COMPOSE_CMD="docker compose"
 fi
 
-# Check for Intel GPU
-echo "Checking for Intel GPU..."
-if ! ls /dev/dri/card* &> /dev/null || ! ls /dev/dri/renderD* &> /dev/null; then
-    echo -e "${YELLOW}Warning: Intel GPU devices not detected.${NC}"
-    echo "GPU acceleration may not be available."
-    echo "Make sure your Intel GPU drivers are properly installed."
-    
-    read -p "Continue without GPU support? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "Exiting."
-        exit 1
+# GPU detection
+GPU_TYPE="cpu"
+CONFIG_FILE="docker-compose.cpu.yml"
+
+# Check for NVIDIA GPU
+echo "Checking for NVIDIA GPU..."
+if command -v nvidia-smi &> /dev/null; then
+    if nvidia-smi &> /dev/null; then
+        echo -e "${GREEN}NVIDIA GPU detected!${NC}"
+        
+        # Check if nvidia-container-runtime is available
+        if grep -q "nvidia" <<< "$(docker info)" || command -v nvidia-container-runtime &> /dev/null; then
+            echo "NVIDIA Container Runtime is available."
+            GPU_TYPE="nvidia"
+            CONFIG_FILE="docker-compose.nvidia.yml"
+        else
+            echo -e "${YELLOW}Warning: NVIDIA GPU detected but NVIDIA Container Runtime is not installed.${NC}"
+            echo "Please install NVIDIA Container Runtime to use GPU acceleration:"
+            echo "https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+            echo "Falling back to CPU mode."
+        fi
+    else
+        echo "NVIDIA GPU not detected or driver issue."
     fi
 fi
 
-# Display available GPU devices
-echo "Available GPU devices:"
-ls -la /dev/dri/
+# Check for Intel GPU if NVIDIA is not available or not properly configured
+if [ "$GPU_TYPE" == "cpu" ]; then
+    echo "Checking for Intel GPU..."
+    if ls /dev/dri/card* &> /dev/null && ls /dev/dri/renderD* &> /dev/null; then
+        echo -e "${GREEN}Intel GPU devices detected!${NC}"
+        
+        # Display available GPU devices
+        echo "Available GPU devices:"
+        ls -la /dev/dri/
+        
+        # Check if the current user has access to the video group
+        if ! groups | grep -q "video"; then
+            echo -e "${YELLOW}Warning: Current user is not in the 'video' group.${NC}"
+            echo "This may prevent proper access to the GPU."
+            echo "Consider adding your user to the video group with:"
+            echo "sudo usermod -a -G video \$USER"
+            echo "Then log out and log back in for changes to take effect."
+        fi
+        
+        GPU_TYPE="igpu"
+        CONFIG_FILE="docker-compose.igpu.yml"
+    else
+        echo "Intel GPU devices not detected."
+        echo "Falling back to CPU-only mode."
+    fi
+fi
 
-# Check if the current user has access to the video group
-if ! groups | grep -q "video"; then
-    echo -e "${YELLOW}Warning: Current user is not in the 'video' group.${NC}"
-    echo "This may prevent proper access to the GPU."
-    echo "Consider adding your user to the video group with:"
-    echo "sudo usermod -a -G video \$USER"
-    echo "Then log out and log back in for changes to take effect."
+# Create symlink to correct config file
+echo "Using $GPU_TYPE configuration ($CONFIG_FILE)..."
+ln -sf $CONFIG_FILE docker-compose.yml
+
+# Ask the user to confirm
+echo
+echo "Ready to start Ollama with $GPU_TYPE acceleration."
+read -p "Continue? (y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Exiting."
+    exit 1
 fi
 
 # Start Ollama container
@@ -143,4 +182,5 @@ echo "  - Pull a model:   docker exec -it ollama ollama pull mistral"
 echo "  - Stop Ollama:    docker compose down"
 echo "  - View logs:      docker logs -f ollama"
 echo
+echo "Current acceleration mode: ${GREEN}$GPU_TYPE${NC}"
 echo "See README.md for more information and troubleshooting."

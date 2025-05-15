@@ -4,22 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This repository contains a Docker Compose configuration for running Ollama with Intel iGPU acceleration. It is designed to provide an easy-to-deploy containerized environment for running large language models using Ollama, optimized for Intel integrated GPUs.
+This repository contains a Docker Compose configuration for running Ollama with automatic GPU detection and acceleration. It supports:
+
+- NVIDIA GPUs (via NVIDIA Container Runtime)
+- Intel iGPUs (via OpenVINO)
+- CPU-only fallback mode
 
 ## Docker Configuration
 
-The setup uses Docker Compose with the following key components:
-- Mounts Intel GPU devices for hardware acceleration
-- Configures OpenVINO for optimized Intel GPU performance
-- Sets up persistent storage for models in `./ollama_data`
-- Exposes the Ollama API on port 11434
+The setup includes three Docker Compose configurations:
+- `docker-compose.nvidia.yml` - NVIDIA GPU acceleration
+- `docker-compose.igpu.yml` - Intel GPU acceleration with OpenVINO
+- `docker-compose.cpu.yml` - CPU-only mode
+
+The `start-ollama.sh` script automatically detects available GPU hardware and creates a symlink to the appropriate configuration.
 
 ## Common Commands
 
 ### Container Management
 
 ```bash
-# Start the Ollama container
+# Start Ollama with automatic GPU detection
+./start-ollama.sh
+
+# Start the Ollama container using current config
 docker compose up -d
 
 # Stop the Ollama container
@@ -62,6 +70,15 @@ docker exec -it ollama ollama create mymodel -f /path/to/modelfile
 
 ### GPU Verification
 
+#### For NVIDIA GPUs:
+
+```bash
+# Check if NVIDIA GPU is visible to the container
+docker exec -it ollama nvidia-smi
+```
+
+#### For Intel GPUs:
+
 ```bash
 # Check if Intel GPU devices are properly mounted
 docker exec -it ollama ls -la /dev/dri/
@@ -73,18 +90,22 @@ docker exec -it ollama clinfo
 
 ## Troubleshooting
 
-1. If Intel GPU acceleration is not working, verify:
+1. If NVIDIA GPU acceleration is not working, verify:
+   - The host system has NVIDIA drivers installed
+   - NVIDIA Container Toolkit is properly installed and configured
+
+2. If Intel GPU acceleration is not working, verify:
    - The host system has Intel GPU drivers installed
    - `/dev/dri` devices are available on the host
    - User running Docker is in the 'video' group
 
-2. For Chrome extension support:
+3. For Chrome extension support:
    - Set `OLLAMA_ORIGINS=chrome-extension://*` or specific extension IDs
 
-3. Performance tuning:
-   - Adjust `OLLAMA_CPU_THREADS` in docker-compose.yml based on your CPU cores
+4. Performance tuning:
+   - Adjust `OLLAMA_CPU_THREADS` in docker-compose files based on your CPU cores
    - Configure memory limits based on your system resources
 
-4. API availability:
+5. API availability:
    - The Ollama API is available at http://localhost:11434
    - Test with: `curl http://localhost:11434/api/tags`
