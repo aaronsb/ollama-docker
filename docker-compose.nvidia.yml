@@ -8,6 +8,9 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_KEEP_ALIVE=1h
       - OLLAMA_CPU_THREADS=16 # Adjust based on your CPU cores
+      # NVIDIA GPU environment variables
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     ports:
       - "11434:11434"
     volumes:
@@ -22,6 +25,3 @@ services:
           memory: 100G  # Adjust based on your RAM
     # Use NVIDIA Container Toolkit for GPU access
     runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
