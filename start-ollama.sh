@@ -260,10 +260,31 @@ fi
 echo
 echo -e "${GREEN}Setup complete!${NC}"
 echo
+
+# Offer to make the ollama helper script available in PATH
+if [ -d "$HOME/.local/bin" ]; then
+    if [ ! -f "$HOME/.local/bin/ollama" ] || ! cmp -s "$PWD/ollama" "$HOME/.local/bin/ollama"; then
+        echo -e "${BLUE}Helper script installation:${NC}"
+        echo "This repository includes an 'ollama' helper script that provides an easy way"
+        echo "to interact with the containerized Ollama instance."
+        read -p "Would you like to install this script to $HOME/.local/bin? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # Ensure script is executable
+            chmod +x "$PWD/ollama"
+            # Copy to ~/.local/bin
+            cp -f "$PWD/ollama" "$HOME/.local/bin/"
+            echo -e "${GREEN}Script installed to $HOME/.local/bin/ollama${NC}"
+            echo "You can now use the 'ollama' command directly from anywhere in your terminal."
+        fi
+    fi
+fi
+
+echo
 echo "Quick commands:"
-echo "  - List models:    docker exec -it ollama ollama list"
-echo "  - Run a model:    docker exec -it ollama ollama run llama3"
-echo "  - Pull a model:   docker exec -it ollama ollama pull mistral"
+echo "  - List models:    ./ollama list"
+echo "  - Run a model:    ./ollama run llama3"
+echo "  - Pull a model:   ./ollama pull mistral"
 echo "  - Stop Ollama:    docker compose down"
 echo "  - View logs:      docker logs -f ollama"
 echo

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Check if Docker is running and ollama container exists
+if ! docker ps -q -f name=ollama &>/dev/null; then
+    echo "Error: Ollama container is not running."
+    echo "Start it with: ./start-ollama.sh"
+    exit 1
+fi
+
+# If stdin is a terminal, use interactive mode (-it)
+# If not (pipe or redirect), use non-interactive mode (-i)
+if [ -t 0 ]; then
+    INTERACTIVE="-it"
+else
+    INTERACTIVE="-i"
+fi
+
+# Execute ollama command in container, passing all arguments
+# The "$@" preserves all arguments exactly as passed
+docker exec $INTERACTIVE ollama ollama "$@"

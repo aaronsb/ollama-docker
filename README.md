@@ -74,9 +74,25 @@ The Ollama API is available at:
 http://localhost:11434
 ```
 
-### Running Models
+### Helper Script
 
-You can run models directly using the Docker container:
+This repository includes an `ollama` helper script that simplifies interactions with the containerized Ollama instance:
+
+```bash
+# Make the script executable
+chmod +x ollama
+
+# Use the script just like the regular ollama command
+./ollama list
+./ollama run llama3
+./ollama pull mistral
+```
+
+The script automatically passes commands to the Docker container and handles interactive/non-interactive mode detection.
+
+### Running Models Directly
+
+You can also run models directly using the Docker container:
 
 ```bash
 # Run a model
