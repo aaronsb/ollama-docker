@@ -1,0 +1,22 @@
+# Ollama data directory
+ollama_data/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker specific
+docker-compose.override.yml

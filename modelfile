@@ -1,0 +1,5 @@
+FROM qwen3:8b
+PARAMETER num_gpu 1
+PARAMETER num_thread 16
+PARAMETER num_ctx 131072  
+PARAMETER num_batch 1024
